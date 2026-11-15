@@ -1,0 +1,52 @@
+
+==================================================================
+ F1. Crash of the primary during continuous writes
+==================================================================
+members before:
+  127.0.0.1:27101  PRIMARY
+  127.0.0.1:27102  SECONDARY
+  127.0.0.1:27103  SECONDARY
+a client starts writing one document every 0.5 s (w: majority)...
+kill -9 on the primary (127.0.0.1:27101) at 14:41:26
+
+primary when the writer started   : 127.0.0.1:27101
+primary when the writer finished  : 127.0.0.1:27103
+writes requested                  : 60
+writes acknowledged               : 60
+documents now in the collection   : 60
+writes that needed a retry        : 0
+typical write (median)            : 16 ms
+longest wait for one write        : 10212 ms  <-- how long the database was unavailable for writes
+write time around the failover (seq: ms):
+    9: 17   10: 14   11: 14   12: 10212   13: 8   14: 16   15: 15
+
+members after the election (seen from 127.0.0.1:27103):
+  127.0.0.1:27101  (not reachable/healthy)
+  127.0.0.1:27102  SECONDARY
+  127.0.0.1:27103  PRIMARY
+
+==================================================================
+ F2. The crashed member is restarted and catches up
+==================================================================
+  127.0.0.1:27101  SECONDARY
+  127.0.0.1:27102  SECONDARY
+  127.0.0.1:27103  PRIMARY
+failover_log documents on the primary           : 60
+failover_log documents on the restarted member  : 60
+
+==================================================================
+ F3. Loss of the majority: two of three members crash
+==================================================================
+killed 127.0.0.1:27101
+killed 127.0.0.1:27102
+04_failover.sh: line 65: 22935 Killed: 9               nohup mongod --port "$port" --bind_ip 127.0.0.1 --dbpath "$BASE/$name" --wiredTigerCacheSizeGB 0.25 "$@" > "$BASE/$name.log" 2>&1
+waiting 15 s for the remaining member (127.0.0.1:27103) to notice...
+remaining member is now: SECONDARY  (it cannot see a majority, so it stepped down)
+write: REFUSED - not primary
+read : still answered, 2000 customers (read preference secondaryPreferred)
+restarting the two members...
+majority restored:
+  127.0.0.1:27101  SECONDARY
+  127.0.0.1:27102  SECONDARY
+  127.0.0.1:27103  PRIMARY
+write: ACCEPTED again

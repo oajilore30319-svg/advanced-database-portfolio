@@ -1,0 +1,4 @@
+Replica set lagoonRS is up:
+  127.0.0.1:27101  PRIMARY
+  127.0.0.1:27102  SECONDARY
+  127.0.0.1:27103  SECONDARY

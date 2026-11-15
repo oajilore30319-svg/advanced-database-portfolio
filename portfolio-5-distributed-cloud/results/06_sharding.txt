@@ -1,0 +1,71 @@
+
+==================================================================
+ S1. Build the cluster: add two shards
+==================================================================
+  shard1RS  shard1RS/127.0.0.1:27211
+  shard2RS  shard2RS/127.0.0.1:27212
+
+==================================================================
+ S2. Shard the activity collection on a HASHED accountId
+==================================================================
+chunks per shard straight after sharding (collection still empty): shard1RS: 1    shard2RS: 1
+loaded 103060 activity documents through the router in 2921 ms
+documents per shard : shard1RS: 41119    shard2RS: 61941
+chunks per shard    : shard1RS: 1    shard2RS: 1
+accounts per shard  : shard1RS: 1489    shard2RS: 1518
+busiest account on each shard: shard1RS: account 11 with 2603 documents    shard2RS: account 13 with 2647 documents
+
+==================================================================
+ S3. Targeted query: the filter contains the shard key, so one shard answers
+==================================================================
+statement of account 7 (db.activity.find({ accountId: 7 }))
+{
+  routing: 'SINGLE_SHARD',
+  shardsContacted: [
+    'shard2RS'
+  ],
+  returned: 20,
+  docsExamined: 20
+}
+where account 7 lives: shard1RS: 0    shard2RS: 2593
+
+==================================================================
+ S4. Scatter-gather query: no shard key in the filter, so every shard is asked
+==================================================================
+ATM withdrawals in Osogbo (db.activity.find({ channel: "ATM", "meta.location": "Osogbo" }))
+{
+  routing: 'SHARD_MERGE',
+  shardsContacted: [
+    'shard1RS',
+    'shard2RS'
+  ],
+  returned: 1790,
+  docsExamined: 103060
+}
+
+monthly report across the whole cluster (aggregation is run on each shard and merged by the router)
+  {"_id":"ATM","entries":632,"totalValue":{"$numberDecimal":"7914984.18"}}
+  {"_id":"MOBILE_APP","entries":1950,"totalValue":{"$numberDecimal":"24892881.81"}}
+  {"_id":"POS","entries":613,"totalValue":{"$numberDecimal":"7722411.11"}}
+  {"_id":"USSD","entries":639,"totalValue":{"$numberDecimal":"8544609.34"}}
+  {"_id":"WEB","entries":628,"totalValue":{"$numberDecimal":"8036929.52"}}
+
+==================================================================
+ S5. A poor shard key for comparison: RANGED on createdAt
+==================================================================
+documents per shard : shard1RS: 30000    shard2RS: 0
+chunks per shard    : shard1RS: 1
+A ranged key starts as one chunk on one shard, and because createdAt only ever increases,
+every new document belongs at the top end of the range: one shard takes all the writes.
+
+==================================================================
+ S6. An unsharded collection lives on one shard only (the primary shard of the database)
+==================================================================
+customers per shard : shard1RS: 500    shard2RS: 0
+
+==================================================================
+ S7. Cluster summary
+==================================================================
+shards              : shard1RS, shard2RS
+activity            : 103060 documents, hashed on accountId -> shard1RS: 41119    shard2RS: 61941
+activity_by_time    : ranged on createdAt -> shard1RS: 30000    shard2RS: 0

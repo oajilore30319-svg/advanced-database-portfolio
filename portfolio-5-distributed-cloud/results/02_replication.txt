@@ -1,0 +1,66 @@
+
+==================================================================
+ A1. Topology
+==================================================================
+MongoDB 9.0.8, replica set "lagoonRS"
+  127.0.0.1:27101  PRIMARY     health=1  optime=2026-11-15T13:41:10.000Z
+  127.0.0.1:27102  SECONDARY   health=1  optime=2026-11-15T13:40:59.000Z
+  127.0.0.1:27103  SECONDARY   health=1  optime=2026-11-15T13:40:59.000Z
+primary   : 127.0.0.1:27101
+secondaries: 127.0.0.1:27102, 127.0.0.1:27103
+
+==================================================================
+ A2. Load LagoonPay customers; every write is copied to all three members
+==================================================================
+documents on each member (counted over a direct connection to that member):
+  127.0.0.1:27101 (primary)    2000
+  127.0.0.1:27102 (secondary)  2000
+  127.0.0.1:27103 (secondary)  2000
+
+==================================================================
+ A3. Write concern: how many members must confirm before the client is told "done"
+==================================================================
+  w: 1 (primary only)         0.47 ms per write
+  w: "majority" (2 of 3)      10.29 ms per write
+  w: 3 (every member)         0.88 ms per write
+  w: "majority", j: true      10.93 ms per write
+  default write concern of this replica set: {"w":"majority","wtimeout":0}
+
+==================================================================
+ A4. A lagging secondary: stale reads, and what each write concern does about it
+==================================================================
+pausing replication on 127.0.0.1:27102
+balance before, on primary          : 4839677.90
+
+-- deposit 5,000 with w: "majority" (the primary plus the healthy secondary are enough)
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 1,
+  upsertedCount: 0
+}
+balance on primary                  : 4844677.90
+balance on healthy secondary        : 4844677.90
+balance on the lagging secondary    : 4839677.90   <-- stale read
+
+-- the same deposit with w: 3 cannot be confirmed while one member is behind
+NOT confirmed: waiting for replication timed out
+(the write itself was applied on the primary; only the confirmation timed out)
+
+resuming replication on 127.0.0.1:27102
+balance on primary                  : 4849677.90
+balance on the secondary, caught up : 4849677.90
+
+==================================================================
+ A5. Read preference: sending report queries to a secondary
+==================================================================
+read preference "secondary": the query was served by 127.0.0.1:27102 (a SECONDARY; the primary is 127.0.0.1:27101)
+  {"_id":"Current Account","accounts":746,"total":{"$numberDecimal":"4350680868.54"}}
+  {"_id":"Savings Account","accounts":1482,"total":{"$numberDecimal":"7344178345.33"}}
+  {"_id":"Wallet (Tier 1)","accounts":779,"total":{"$numberDecimal":"3859971190.48"}}
+
+-- final state
+  127.0.0.1:27101  PRIMARY     health=1  optime=2026-11-15T13:41:16.000Z
+  127.0.0.1:27102  SECONDARY   health=1  optime=2026-11-15T13:41:15.000Z
+  127.0.0.1:27103  SECONDARY   health=1  optime=2026-11-15T13:41:16.000Z

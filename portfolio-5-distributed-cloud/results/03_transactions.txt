@@ -1,0 +1,22 @@
+
+==================================================================
+ T1. A transfer of 10,000 that commits (two customer documents + one transfers document)
+==================================================================
+before                    3000000900 = 4844088.40    3000001100 = 5023320.74
+result: COMMITTED
+after                     3000000900 = 4834088.40    3000001100 = 5033320.74
+
+==================================================================
+ T2. A transfer that fails halfway: the receiver is credited first, then the debit breaks the balance rule
+==================================================================
+before                    3000000900 = 4834088.40    3000001100 = 5033320.74
+result: ABORTED: Plan executor error during update :: caused by :: Document failed validation
+after (unchanged)         3000000900 = 4834088.40    3000001100 = 5033320.74
+transfers recorded: 1 (only the committed one)
+
+==================================================================
+ T3. Isolation: a change inside an open transaction is invisible to other sessions until commit
+==================================================================
+seen inside the transaction : 5034097.74
+seen by another session     : 5033320.74
+after abort                 : 5033320.74

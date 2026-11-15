@@ -1,0 +1,4 @@
+  cfgRS on 127.0.0.1:27201 is PRIMARY
+  shard1RS on 127.0.0.1:27211 is PRIMARY
+  shard2RS on 127.0.0.1:27212 is PRIMARY
+  mongos router on 127.0.0.1:27200 is up
