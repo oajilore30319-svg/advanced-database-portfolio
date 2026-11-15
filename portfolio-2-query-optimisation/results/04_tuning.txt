@@ -1,0 +1,23 @@
+SET
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+DROP INDEX
+SELECT 331
+CREATE INDEX
+CREATE INDEX
+VACUUM
+--- Indexes after tuning, with size ---
+         index_name         |     on_table      | index_size 
+----------------------------+-------------------+------------
+ idx_ledger_created_cover   | ledger_entries    | 27 MB
+ idx_ledger_account_created | ledger_entries    | 17 MB
+ idx_txn_initiated_at       | transactions      | 9456 kB
+ idx_accounts_customer      | accounts          | 904 kB
+ idx_customers_name_lower   | customers         | 168 kB
+ idx_txn_pending            | transactions      | 64 kB
+ uq_mv_monthly_volume       | mv_monthly_volume | 32 kB
+ idx_audit_account          | audit_log         | 8192 bytes
+(8 rows)
+

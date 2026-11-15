@@ -1,0 +1,127 @@
+SET
+DROP TABLE
+DROP TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+CREATE FUNCTION
+                   query                    
+--------------------------------------------
+ Q1: Transactions initiated on 15 June 2026
+(1 row)
+
+ transaction_id |   reference    |  txn_type  |  amount  | status  |         initiated_at          
+----------------+----------------+------------+----------+---------+-------------------------------
+         117447 | LGP-0000117447 | DEPOSIT    | 30265.03 | SUCCESS | 2026-06-15 00:01:17.881087+01
+         229123 | LGP-0000229123 | WITHDRAWAL |  7791.13 | SUCCESS | 2026-06-15 00:04:45.595463+01
+          37353 | LGP-0000037353 | DEPOSIT    |   695.17 | SUCCESS | 2026-06-15 00:06:01.880669+01
+         305596 | LGP-0000305596 | TRANSFER   | 26084.41 | FAILED  | 2026-06-15 00:07:27.008434+01
+          55089 | LGP-0000055089 | TRANSFER   |  3200.79 | SUCCESS | 2026-06-15 00:09:21.528701+01
+         359383 | LGP-0000359383 | TRANSFER   |  1444.68 | SUCCESS | 2026-06-15 00:10:33.028352+01
+         400347 | LGP-0000400347 | TRANSFER   |   733.86 | SUCCESS | 2026-06-15 00:13:20.81532+01
+         342838 | LGP-0000342838 | WITHDRAWAL |  2268.41 | SUCCESS | 2026-06-15 00:13:39.342153+01
+         148430 | LGP-0000148430 | TRANSFER   |  9215.17 | SUCCESS | 2026-06-15 00:15:15.32188+01
+         223412 | LGP-0000223412 | TRANSFER   |  3283.45 | SUCCESS | 2026-06-15 00:16:23.101423+01
+(10 rows)
+
+                    query                    
+---------------------------------------------
+ Q2: Oldest 50 transactions stuck in PENDING
+(1 row)
+
+ transaction_id |   reference    |  txn_type  |  amount  |  channel   |         initiated_at          
+----------------+----------------+------------+----------+------------+-------------------------------
+         146345 | LGP-0000146345 | TRANSFER   |   707.38 | WEB        | 2025-01-01 21:27:23.781366+01
+         228244 | LGP-0000228244 | DEPOSIT    | 27778.50 | USSD       | 2025-01-03 03:32:21.300761+01
+         357886 | LGP-0000357886 | TRANSFER   |   738.68 | MOBILE_APP | 2025-01-04 03:41:31.913006+01
+         141375 | LGP-0000141375 | DEPOSIT    |   949.82 | WEB        | 2025-01-04 10:10:04.089813+01
+         402162 | LGP-0000402162 | TRANSFER   |  2488.89 | ATM        | 2025-01-04 13:48:06.397079+01
+         134113 | LGP-0000134113 | TRANSFER   |  9328.58 | ATM        | 2025-01-04 14:01:48.337523+01
+         367314 | LGP-0000367314 | WITHDRAWAL | 28998.80 | MOBILE_APP | 2025-01-04 14:22:07.809167+01
+         189174 | LGP-0000189174 | WITHDRAWAL | 12892.27 | USSD       | 2025-01-04 15:02:51.363546+01
+         316956 | LGP-0000316956 | TRANSFER   |   500.05 | ATM        | 2025-01-05 04:18:25.739789+01
+          59923 | LGP-0000059923 | TRANSFER   |   605.53 | MOBILE_APP | 2025-01-05 17:11:35.653428+01
+(10 rows)
+
+                         query                         
+-------------------------------------------------------
+ Q3: Find customers named Chidi Okeke, any letter case
+(1 row)
+
+ customer_id | first_name | last_name |            email            |     phone      
+-------------+------------+-----------+-----------------------------+----------------
+          97 | Chidi      | Okeke     | chidi.okeke97@example.com   | +2348000000097
+         496 | Chidi      | Okeke     | chidi.okeke496@example.com  | +2348000000496
+        1643 | Chidi      | Okeke     | chidi.okeke1643@example.com | +2348000001643
+        1995 | Chidi      | Okeke     | chidi.okeke1995@example.com | +2348000001995
+        2402 | Chidi      | Okeke     | chidi.okeke2402@example.com | +2348000002402
+        2799 | Chidi      | Okeke     | chidi.okeke2799@example.com | +2348000002799
+        3810 | Chidi      | Okeke     | chidi.okeke3810@example.com | +2348000003810
+        5605 | Chidi      | Okeke     | chidi.okeke5605@example.com | +2348000005605
+        5644 | Chidi      | Okeke     | chidi.okeke5644@example.com | +2348000005644
+        5889 | Chidi      | Okeke     | chidi.okeke5889@example.com | +2348000005889
+(10 rows)
+
+                           query                           
+-----------------------------------------------------------
+ Q4: Last 20 ledger entries of merchant account 3000000007
+(1 row)
+
+   reference    | txn_type | direction |  amount  | balance_after |          created_at           
+----------------+----------+-----------+----------+---------------+-------------------------------
+ LGP-0000160461 | TRANSFER | CREDIT    |  1468.41 |   39701060.07 | 2026-10-31 23:30:05.856073+01
+ LGP-0000104293 | TRANSFER | CREDIT    | 20808.46 |   39699591.66 | 2026-10-31 14:15:13.235404+01
+ LGP-0000131498 | TRANSFER | CREDIT    | 30804.76 |   39678783.20 | 2026-10-31 13:56:08.511818+01
+ LGP-0000115995 | TRANSFER | CREDIT    | 18349.73 |   39647978.44 | 2026-10-31 13:43:23.46705+01
+ LGP-0000242084 | TRANSFER | CREDIT    | 22261.75 |   39629628.71 | 2026-10-31 00:20:18.275695+01
+ LGP-0000348949 | TRANSFER | CREDIT    | 10256.57 |   39607366.96 | 2026-10-30 08:08:22.068602+01
+ LGP-0000394418 | TRANSFER | CREDIT    |  3582.04 |   39597110.39 | 2026-10-30 06:18:17.819222+01
+ LGP-0000198111 | TRANSFER | CREDIT    |  5418.93 |   39593528.35 | 2026-10-30 04:35:10.602226+01
+ LGP-0000370746 | TRANSFER | CREDIT    |  7381.37 |   39588109.42 | 2026-10-30 00:14:59.922111+01
+ LGP-0000344011 | TRANSFER | CREDIT    |  2227.77 |   39580728.05 | 2026-10-29 21:10:51.77662+01
+(10 rows)
+
+                            query                            
+-------------------------------------------------------------
+ Q5: Monthly successful volume and value by channel and type
+(1 row)
+
+         month          |  channel   |  txn_type  | txn_count |   total_value   
+------------------------+------------+------------+-----------+-----------------
+ 2024-12-01 00:00:00+01 | WEB        | DEPOSIT    |     30000 | 150000000000.00
+ 2025-01-01 00:00:00+01 | ATM        | DEPOSIT    |       480 |      6058714.64
+ 2025-01-01 00:00:00+01 | ATM        | TRANSFER   |      1556 |     20144561.63
+ 2025-01-01 00:00:00+01 | ATM        | WITHDRAWAL |       356 |      5132530.80
+ 2025-01-01 00:00:00+01 | MOBILE_APP | DEPOSIT    |      1399 |     17518002.69
+ 2025-01-01 00:00:00+01 | MOBILE_APP | TRANSFER   |      4892 |     63383494.70
+ 2025-01-01 00:00:00+01 | MOBILE_APP | WITHDRAWAL |      1123 |     14903328.67
+ 2025-01-01 00:00:00+01 | POS        | DEPOSIT    |       503 |      6248036.64
+ 2025-01-01 00:00:00+01 | POS        | TRANSFER   |      1611 |     20664450.71
+ 2025-01-01 00:00:00+01 | POS        | WITHDRAWAL |       383 |      4837579.66
+(10 rows)
+
+                         query                          
+--------------------------------------------------------
+ Q6: Top 10 customers by total debits in September 2026
+(1 row)
+
+ customer_id | first_name | last_name | debit_count | total_debited 
+-------------+------------+-----------+-------------+---------------
+       10523 | Aisha      | Onyeka    |           7 |     184315.20
+         500 | Chidi      | Nwachukwu |           5 |     150688.07
+       14232 | Chidi      | Ogunleye  |           5 |     148108.11
+        9246 | Musa       | Okafor    |           4 |     140067.45
+       18660 | Chidi      | Ogunleye  |           4 |     139614.71
+        4387 | Emeka      | Onyeka    |           3 |     139468.85
+        4419 | Zainab     | Nwachukwu |           5 |     136808.29
+       14162 | Adaeze     | Onyeka    |           4 |     128718.23
+        1343 | Kemi       | Balogun   |           4 |     127367.63
+       17084 | Emeka      | Abubakar  |           4 |     127076.44
+(10 rows)
+

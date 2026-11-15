@@ -1,0 +1,50 @@
+SET
+--- Execution time and pages touched, before and after tuning ---
+ query_id | before_ms | after_ms | times_faster | before_pages | after_pages 
+----------+-----------+----------+--------------+--------------+-------------
+ Q1       |    20.488 |    0.271 |         75.6 |         6071 |         547
+ Q1c      |    20.481 |   20.183 |          1.0 |         6071 |        6071
+ Q2       |    14.767 |    0.018 |        820.4 |         6071 |          52
+ Q3       |     4.299 |    0.018 |        238.8 |          282 |          33
+ Q4       |     3.990 |    0.033 |        120.9 |        12443 |         102
+ Q5       |   297.577 |    0.106 |       2807.3 |         5995 |           4
+ Q6       |    24.201 |   14.103 |          1.7 |         8967 |        1115
+(7 rows)
+
+--- Access path chosen by the planner, before and after ---
+-[ RECORD 1 ]---------------------------------------------------------------------------------------------------------------------
+query_id    | Q1
+description | Transactions initiated on 15 June 2026
+before_path | Seq Scan on transactions
+after_path  | Bitmap Index Scan on idx_txn_initiated_at
+-[ RECORD 2 ]---------------------------------------------------------------------------------------------------------------------
+query_id    | Q1c
+description | Control: Q1 left with the ::date cast
+before_path | Seq Scan on transactions
+after_path  | Seq Scan on transactions
+-[ RECORD 3 ]---------------------------------------------------------------------------------------------------------------------
+query_id    | Q2
+description | Oldest 50 transactions stuck in PENDING
+before_path | Seq Scan on transactions
+after_path  | Index Scan on idx_txn_pending
+-[ RECORD 4 ]---------------------------------------------------------------------------------------------------------------------
+query_id    | Q3
+description | Find customers named Chidi Okeke, any letter case
+before_path | Seq Scan on customers
+after_path  | Bitmap Index Scan on idx_customers_name_lower
+-[ RECORD 5 ]---------------------------------------------------------------------------------------------------------------------
+query_id    | Q4
+description | Last 20 ledger entries of merchant account 3000000007
+before_path | Bitmap Index Scan on idx_ledger_account; Index Scan on accounts_account_number_key; Index Scan on transactions_pkey
+after_path  | Index Scan on accounts_account_number_key; Index Scan on idx_ledger_account_created; Index Scan on transactions_pkey
+-[ RECORD 6 ]---------------------------------------------------------------------------------------------------------------------
+query_id    | Q5
+description | Monthly successful volume and value by channel and type
+before_path | Seq Scan on transactions
+after_path  | Seq Scan on mv_monthly_volume
+-[ RECORD 7 ]---------------------------------------------------------------------------------------------------------------------
+query_id    | Q6
+description | Top 10 customers by total debits in September 2026
+before_path | Seq Scan on accounts; Seq Scan on customers; Seq Scan on ledger_entries
+after_path  | Index Only Scan on idx_ledger_created_cover; Seq Scan on accounts; Seq Scan on customers
+

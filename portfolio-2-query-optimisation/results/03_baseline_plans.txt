@@ -1,0 +1,209 @@
+SET
+               baseline_plan                
+--------------------------------------------
+ Q1: Transactions initiated on 15 June 2026
+(1 row)
+
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
+ Gather Merge  (cost=9726.46..9976.86 rows=2150 width=54) (actual time=18.853..20.280 rows=573.00 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=5926 read=145
+   ->  Sort  (cost=8726.44..8728.68 rows=896 width=54) (actual time=16.760..16.764 rows=191.00 loops=3)
+         Sort Key: initiated_at
+         Sort Method: quicksort  Memory: 40kB
+         Buffers: shared hit=5926 read=145
+         Worker 0:  Sort Method: quicksort  Memory: 37kB
+         Worker 1:  Sort Method: quicksort  Memory: 38kB
+         ->  Parallel Seq Scan on transactions  (cost=0.00..8682.50 rows=896 width=54) (actual time=1.129..16.692 rows=191.00 loops=3)
+               Filter: ((initiated_at)::date = '2026-06-15'::date)
+               Rows Removed by Filter: 143142
+               Buffers: shared hit=5850 read=145
+ Planning Time: 0.024 ms
+ Execution Time: 20.300 ms
+(16 rows)
+
+               baseline_plan                
+--------------------------------------------
+ Q1c: Control: Q1 left with the ::date cast
+(1 row)
+
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
+ Gather Merge  (cost=9726.46..9976.86 rows=2150 width=54) (actual time=19.067..21.273 rows=573.00 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=6020 read=51
+   ->  Sort  (cost=8726.44..8728.68 rows=896 width=54) (actual time=16.787..16.793 rows=191.00 loops=3)
+         Sort Key: initiated_at
+         Sort Method: quicksort  Memory: 39kB
+         Buffers: shared hit=6020 read=51
+         Worker 0:  Sort Method: quicksort  Memory: 38kB
+         Worker 1:  Sort Method: quicksort  Memory: 39kB
+         ->  Parallel Seq Scan on transactions  (cost=0.00..8682.50 rows=896 width=54) (actual time=1.169..16.726 rows=191.00 loops=3)
+               Filter: ((initiated_at)::date = '2026-06-15'::date)
+               Rows Removed by Filter: 143142
+               Buffers: shared hit=5944 read=51
+ Planning Time: 0.038 ms
+ Execution Time: 21.301 ms
+(16 rows)
+
+                baseline_plan                
+---------------------------------------------
+ Q2: Oldest 50 transactions stuck in PENDING
+(1 row)
+
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=9704.88..9710.70 rows=50 width=53) (actual time=13.338..14.720 rows=50.00 loops=1)
+   Buffers: shared hit=6071
+   ->  Gather Merge  (cost=9704.88..9892.97 rows=1615 width=53) (actual time=13.337..14.717 rows=50.00 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=6071
+         ->  Sort  (cost=8704.86..8706.54 rows=673 width=53) (actual time=11.080..11.081 rows=40.33 loops=3)
+               Sort Key: initiated_at
+               Sort Method: top-N heapsort  Memory: 36kB
+               Buffers: shared hit=6071
+               Worker 0:  Sort Method: top-N heapsort  Memory: 36kB
+               Worker 1:  Sort Method: top-N heapsort  Memory: 36kB
+               ->  Parallel Seq Scan on transactions  (cost=0.00..8682.50 rows=673 width=53) (actual time=0.706..10.967 rows=634.00 loops=3)
+                     Filter: ((initiated_at < '2026-10-30 00:00:00+01'::timestamp with time zone) AND ((status)::text = 'PENDING'::text))
+                     Rows Removed by Filter: 142699
+                     Buffers: shared hit=5995
+ Planning Time: 0.063 ms
+ Execution Time: 14.732 ms
+(18 rows)
+
+                     baseline_plan                     
+-------------------------------------------------------
+ Q3: Find customers named Chidi Okeke, any letter case
+(1 row)
+
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Sort  (cost=682.01..682.01 rows=1 width=66) (actual time=4.574..4.575 rows=33.00 loops=1)
+   Sort Key: customer_id
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=282
+   ->  Seq Scan on customers  (cost=0.00..682.00 rows=1 width=66) (actual time=0.034..4.567 rows=33.00 loops=1)
+         Filter: ((lower((last_name)::text) = 'okeke'::text) AND (lower((first_name)::text) = 'chidi'::text))
+         Rows Removed by Filter: 19967
+         Buffers: shared hit=282
+ Planning Time: 0.050 ms
+ Execution Time: 4.580 ms
+(10 rows)
+
+                       baseline_plan                       
+-----------------------------------------------------------
+ Q4: Last 20 ledger entries of merchant account 3000000007
+(1 row)
+
+                                                                        QUERY PLAN                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=271.28..271.33 rows=20 width=53) (actual time=6.596..6.597 rows=20.00 loops=1)
+   Buffers: shared hit=12443
+   InitPlan 1
+     ->  Index Scan using accounts_account_number_key on accounts  (cost=0.41..8.43 rows=1 width=8) (actual time=0.009..0.009 rows=1.00 loops=1)
+           Index Cond: (account_number = '3000000007'::bpchar)
+           Index Searches: 1
+           Buffers: shared hit=4
+   ->  Sort  (cost=262.85..262.90 rows=21 width=53) (actual time=6.595..6.596 rows=20.00 loops=1)
+         Sort Key: l.created_at DESC
+         Sort Method: top-N heapsort  Memory: 30kB
+         Buffers: shared hit=12443
+         ->  Nested Loop  (cost=5.01..262.39 rows=21 width=53) (actual time=0.319..6.215 rows=2593.00 loops=1)
+               Buffers: shared hit=12443
+               ->  Bitmap Heap Scan on ledger_entries l  (cost=4.59..85.15 rows=21 width=37) (actual time=0.316..1.412 rows=2593.00 loops=1)
+                     Recheck Cond: (account_id = (InitPlan 1).col1)
+                     Heap Blocks: exact=2062
+                     Buffers: shared hit=2071
+                     ->  Bitmap Index Scan on idx_ledger_account  (cost=0.00..4.58 rows=21 width=0) (actual time=0.147..0.147 rows=2593.00 loops=1)
+                           Index Cond: (account_id = (InitPlan 1).col1)
+                           Index Searches: 1
+                           Buffers: shared hit=9
+               ->  Index Scan using transactions_pkey on transactions t  (cost=0.42..8.44 rows=1 width=32) (actual time=0.002..0.002 rows=1.00 loops=2593)
+                     Index Cond: (transaction_id = l.transaction_id)
+                     Index Searches: 2593
+                     Buffers: shared hit=10372
+ Planning:
+   Buffers: shared hit=16
+ Planning Time: 0.144 ms
+ Execution Time: 6.610 ms
+(29 rows)
+
+                        baseline_plan                        
+-------------------------------------------------------------
+ Q5: Monthly successful volume and value by channel and type
+(1 row)
+
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=60120.55..72347.17 rows=407554 width=63) (actual time=200.370..303.586 rows=331.00 loops=1)
+   Group Key: (date_trunc('month'::text, initiated_at)), channel, txn_type
+   Buffers: shared hit=5995, temp read=2077 written=2084
+   ->  Sort  (cost=60120.55..61139.44 rows=407554 width=30) (actual time=194.466..260.728 rows=408087.00 loops=1)
+         Sort Key: (date_trunc('month'::text, initiated_at)), channel, txn_type
+         Sort Method: external merge  Disk: 16616kB
+         Buffers: shared hit=5995, temp read=2077 written=2084
+         ->  Seq Scan on transactions  (cost=0.00..12388.89 rows=407554 width=30) (actual time=0.005..71.577 rows=408087.00 loops=1)
+               Filter: ((status)::text = 'SUCCESS'::text)
+               Rows Removed by Filter: 21913
+               Buffers: shared hit=5995
+ Planning Time: 0.033 ms
+ Execution Time: 304.679 ms
+(13 rows)
+
+                     baseline_plan                      
+--------------------------------------------------------
+ Q6: Top 10 customers by total debits in September 2026
+(1 row)
+
+                                                                                                            QUERY PLAN                                                                                                            
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=15321.83..15321.85 rows=10 width=61) (actual time=42.168..42.194 rows=10.00 loops=1)
+   Buffers: shared hit=8890 read=77
+   ->  Sort  (cost=15321.83..15355.61 rows=13514 width=61) (actual time=42.167..42.192 rows=10.00 loops=1)
+         Sort Key: (sum(l.amount)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=8890 read=77
+         ->  HashAggregate  (cost=14860.87..15029.80 rows=13514 width=61) (actual time=39.062..40.942 rows=9334.00 loops=1)
+               Group Key: c.customer_id
+               Batches: 1  Memory Usage: 4113kB
+               Buffers: shared hit=8890 read=77
+               ->  Gather  (cost=3089.00..14759.52 rows=13514 width=28) (actual time=33.998..36.328 rows=13427.00 loops=1)
+                     Workers Planned: 2
+                     Workers Launched: 2
+                     Buffers: shared hit=8890 read=77
+                     ->  Hash Join  (cost=2089.00..12408.12 rows=5631 width=28) (actual time=22.276..25.145 rows=4475.67 loops=3)
+                           Hash Cond: (a.customer_id = c.customer_id)
+                           Buffers: shared hit=8890 read=77
+                           ->  Hash Join  (cost=1357.00..11661.34 rows=5631 width=15) (actual time=14.589..16.562 rows=4475.67 loops=3)
+                                 Hash Cond: (l.account_id = a.account_id)
+                                 Buffers: shared hit=8044 read=77
+                                 ->  Parallel Seq Scan on ledger_entries l  (cost=0.00..10289.55 rows=5631 width=15) (actual time=10.915..12.250 rows=4475.67 loops=3)
+                                       Filter: ((created_at >= '2026-09-01 00:00:00+01'::timestamp with time zone) AND (created_at < '2026-10-01 00:00:00+01'::timestamp with time zone) AND ((direction)::text = 'DEBIT'::text))
+                                       Rows Removed by Filter: 188190
+                                       Buffers: shared hit=5998 read=77
+                                 ->  Hash  (cost=982.00..982.00 rows=30000 width=16) (actual time=3.649..3.650 rows=30000.00 loops=3)
+                                       Buckets: 32768  Batches: 1  Memory Usage: 1663kB
+                                       Buffers: shared hit=2046
+                                       ->  Seq Scan on accounts a  (cost=0.00..982.00 rows=30000 width=16) (actual time=0.405..2.014 rows=30000.00 loops=3)
+                                             Buffers: shared hit=2046
+                           ->  Hash  (cost=482.00..482.00 rows=20000 width=21) (actual time=7.662..7.662 rows=20000.00 loops=3)
+                                 Buckets: 32768  Batches: 1  Memory Usage: 1305kB
+                                 Buffers: shared hit=846
+                                 ->  Seq Scan on customers c  (cost=0.00..482.00 rows=20000 width=21) (actual time=0.103..2.685 rows=20000.00 loops=3)
+                                       Buffers: shared hit=846
+ Planning:
+   Buffers: shared hit=26
+ Planning Time: 0.231 ms
+ Execution Time: 42.242 ms
+(38 rows)
+
+ measure 
+---------
+ 
+(1 row)
+

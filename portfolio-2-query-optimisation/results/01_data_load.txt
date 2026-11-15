@@ -1,0 +1,74 @@
+DROP SCHEMA
+CREATE SCHEMA
+SET
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE VIEW
+SET
+ setseed 
+---------
+ 
+(1 row)
+
+INSERT 0 3
+INSERT 0 5
+INSERT 0 20000
+INSERT 0 30000
+INSERT 0 15000
+SELECT 30000
+INSERT 0 400000
+INSERT 0 430000
+ setval 
+--------
+ 430000
+(1 row)
+
+INSERT 0 577996
+ALTER TABLE
+UPDATE 30000
+ALTER TABLE
+DROP TABLE
+VACUUM
+--- Data loaded: row counts ---
+   table_name   | row_count 
+----------------+-----------
+ beneficiaries  |     15000
+ customers      |     20000
+ accounts       |     30000
+ transactions   |    430000
+ ledger_entries |    577996
+(5 rows)
+
+--- Accounts whose stored balance differs from the ledger (must be 0) ---
+ accounts_out_of_balance 
+-------------------------
+                       0
+(1 row)
+
+--- Table sizes ---
+   table_name   | table_size | index_size 
+----------------+------------+------------
+ ledger_entries | 48 MB      | 47 MB
+ transactions   | 47 MB      | 25 MB
+ accounts       | 5488 kB    | 5032 kB
+ customers      | 2288 kB    | 2312 kB
+ beneficiaries  | 1312 kB    | 1088 kB
+ banks          | 40 kB      | 32 kB
+ account_types  | 40 kB      | 32 kB
+ audit_log      | 8192 bytes | 16 kB
+(8 rows)
+
