@@ -1,5 +1,6 @@
 -- Portfolio 1 - quick look at what was built (use for screenshots)
 SET search_path TO lagoonpay;
+\pset pager off
 
 \echo '--- Tables ---'
 \dt lagoonpay.*
@@ -15,7 +16,8 @@ UNION ALL SELECT 'audit_log',      COUNT(*) FROM audit_log;
 \echo '--- Constraints declared ---'
 SELECT conrelid::regclass AS table_name,
        CASE contype WHEN 'p' THEN 'PRIMARY KEY' WHEN 'f' THEN 'FOREIGN KEY'
-                    WHEN 'u' THEN 'UNIQUE'      WHEN 'c' THEN 'CHECK' END AS kind,
+                    WHEN 'u' THEN 'UNIQUE'      WHEN 'c' THEN 'CHECK'
+                    WHEN 'n' THEN 'NOT NULL' END AS kind,   -- 'n' rows exist from PostgreSQL 18
        COUNT(*) AS how_many
 FROM pg_constraint
 WHERE connamespace = 'lagoonpay'::regnamespace

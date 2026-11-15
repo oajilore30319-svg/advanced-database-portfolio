@@ -84,7 +84,9 @@ BEGIN
     BEGIN
         DELETE FROM customers WHERE customer_id = 1;
         RAISE NOTICE 'T9 FAIL: customer with accounts was deleted';
-    EXCEPTION WHEN foreign_key_violation THEN
+    -- PostgreSQL 18 reports RESTRICT with its own error code (restrict_violation);
+    -- versions up to 17 report foreign_key_violation. Both are accepted.
+    EXCEPTION WHEN foreign_key_violation OR restrict_violation THEN
         RAISE NOTICE 'T9 PASS: customer with accounts cannot be deleted (ON DELETE RESTRICT)';
     END;
 

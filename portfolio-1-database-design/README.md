@@ -3,7 +3,7 @@
 **Student:** Ajilore Opeyemi (301930319)
 **Course:** MIT 8103 Advanced Database Systems
 **Case study:** LagoonPay, a simulated Nigerian digital bank
-**Engine:** PostgreSQL 16
+**Engine:** PostgreSQL 18 (scripts also run on 16)
 
 ## 1. Case study
 
@@ -136,7 +136,7 @@ psql -d lagoonpay_db -f 04_verify.sql
 
 ## 8. Test results
 
-All 12 tests pass on PostgreSQL 16.
+All 12 tests pass on PostgreSQL 18 and 16.
 
 | Test | What is attempted | Result |
 |---|---|---|
