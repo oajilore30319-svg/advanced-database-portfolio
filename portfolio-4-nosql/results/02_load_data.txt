@@ -1,0 +1,143 @@
+MongoDB server version: 9.0.8
+customers loaded : 2000
+activity loaded  : 103060
+load time (ms)   : 3263
+
+--- collections ---
+activity: 103060 documents
+customers: 2000 documents
+
+--- one customer document (tier 3: has address and three KYC documents) ---
+{
+  _id: 3,
+  name: {
+    first: 'Folake',
+    last: 'Okeke'
+  },
+  email: 'folake.okeke3@example.com',
+  phone: '+2348000000003',
+  dateOfBirth: ISODate('1985-07-28T00:00:00.000Z'),
+  kyc: {
+    tier: 3,
+    documents: [
+      {
+        type: 'PHONE',
+        verified: true
+      },
+      {
+        type: 'NIN',
+        last4: '3757'
+      },
+      {
+        type: 'UTILITY_BILL',
+        issuer: 'Electricity distribution company',
+        issuedOn: ISODate('2024-07-10T19:38:47.916Z')
+      }
+    ]
+  },
+  address: {
+    city: 'Port Harcourt',
+    country: 'NG'
+  },
+  accounts: [
+    {
+      accountId: 3,
+      accountNumber: '3000000003',
+      type: {
+        code: 'CUR',
+        name: 'Current Account'
+      },
+      currency: 'NGN',
+      balance: Decimal128('37650565.37'),
+      status: 'ACTIVE',
+      openedAt: ISODate('2024-11-30T23:00:00.000Z')
+    }
+  ],
+  beneficiaries: [
+    {
+      bankCode: '057',
+      bankName: 'Zenith Bank',
+      accountNumber: '0000009554',
+      accountName: 'Beneficiary 9554'
+    }
+  ],
+  createdAt: ISODate('2024-08-09T19:38:47.916Z')
+}
+
+--- one customer document (tier 1: no address, one KYC document) ---
+{
+  _id: 1,
+  name: {
+    first: 'Tunde',
+    last: 'Abubakar'
+  },
+  kyc: {
+    tier: 1,
+    documents: [
+      {
+        type: 'PHONE',
+        verified: true
+      }
+    ]
+  },
+  accounts: [
+    {
+      accountNumber: '3000000001'
+    }
+  ]
+}
+
+--- one activity document per channel: "meta" has a different shape each time ---
+{
+  reference: 'LGP-0000360088',
+  type: 'TRANSFER',
+  amount: Decimal128('43865.21'),
+  channel: 'ATM',
+  meta: {
+    terminalId: 'ATM-0088',
+    location: 'Lagos',
+    cardLast4: '6872'
+  }
+}
+{
+  reference: 'LGP-0000167283',
+  type: 'TRANSFER',
+  amount: Decimal128('594.23'),
+  channel: 'POS',
+  meta: {
+    terminalId: 'POS-00783',
+    merchantName: 'Campus Bookshop',
+    merchantCategory: 'EDUCATION'
+  }
+}
+{
+  reference: 'LGP-0000112997',
+  type: 'TRANSFER',
+  amount: Decimal128('43205.99'),
+  channel: 'USSD',
+  meta: {
+    network: 'Network B',
+    sessionId: 'USSD112997'
+  }
+}
+{
+  reference: 'LGP-0000307610',
+  type: 'WITHDRAWAL',
+  amount: Decimal128('26086.60'),
+  channel: 'MOBILE_APP',
+  meta: {
+    device: {
+      os: 'Android',
+      appVersion: '4.2'
+    }
+  }
+}
+{
+  reference: 'LGP-0000000001',
+  type: 'DEPOSIT',
+  amount: Decimal128('5000000.00'),
+  channel: 'WEB',
+  meta: {
+    browser: 'Safari'
+  }
+}

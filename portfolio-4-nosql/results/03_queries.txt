@@ -1,0 +1,437 @@
+
+==================================================================
+ A. Customer profile in ONE read (SQL needs a 5-table join)
+==================================================================
+{
+  _id: 1500,
+  name: {
+    first: 'Adaeze',
+    last: 'Onyeka'
+  },
+  phone: '+2348000001500',
+  kyc: {
+    tier: 2
+  },
+  accounts: [
+    {
+      accountNumber: '3000001500',
+      type: {
+        name: 'Wallet (Tier 1)'
+      },
+      balance: Decimal128('4839677.90'),
+      status: 'ACTIVE'
+    },
+    {
+      accountNumber: '3000027176',
+      type: {
+        name: 'Wallet (Tier 1)'
+      },
+      balance: Decimal128('4916814.80'),
+      status: 'ACTIVE'
+    }
+  ],
+  beneficiaries: [
+    {
+      bankCode: '057',
+      bankName: 'Zenith Bank',
+      accountNumber: '0000005967',
+      accountName: 'Beneficiary 5967'
+    }
+  ]
+}
+
+==================================================================
+ B. Mini-statement: last 5 entries of merchant account 7, before and after an index
+==================================================================
+{
+  reference: 'LGP-0000160461',
+  type: 'TRANSFER',
+  direction: 'CREDIT',
+  amount: Decimal128('1468.41'),
+  balanceAfter: Decimal128('39701060.07'),
+  counterparty: {
+    name: 'Hauwa Bakare'
+  },
+  createdAt: ISODate('2026-10-31T22:30:05.856Z')
+}
+{
+  reference: 'LGP-0000104293',
+  type: 'TRANSFER',
+  direction: 'CREDIT',
+  amount: Decimal128('20808.46'),
+  balanceAfter: Decimal128('39699591.66'),
+  counterparty: {
+    name: 'Musa Adebayo'
+  },
+  createdAt: ISODate('2026-10-31T13:15:13.235Z')
+}
+{
+  reference: 'LGP-0000131498',
+  type: 'TRANSFER',
+  direction: 'CREDIT',
+  amount: Decimal128('30804.76'),
+  balanceAfter: Decimal128('39678783.20'),
+  counterparty: {
+    name: 'Musa Umeh'
+  },
+  createdAt: ISODate('2026-10-31T12:56:08.511Z')
+}
+{
+  reference: 'LGP-0000115995',
+  type: 'TRANSFER',
+  direction: 'CREDIT',
+  amount: Decimal128('18349.73'),
+  balanceAfter: Decimal128('39647978.44'),
+  counterparty: {
+    name: 'Ngozi Nwachukwu'
+  },
+  createdAt: ISODate('2026-10-31T12:43:23.467Z')
+}
+{
+  reference: 'LGP-0000242084',
+  type: 'TRANSFER',
+  direction: 'CREDIT',
+  amount: Decimal128('22261.75'),
+  balanceAfter: Decimal128('39629628.71'),
+  counterparty: {
+    name: 'Aisha Nwosu'
+  },
+  createdAt: ISODate('2026-10-30T23:20:18.275Z')
+}
+
+-- plan BEFORE index
+{
+  plan: 'PROJECTION_DEFAULT <- SORT <- COLLSCAN',
+  returned: 5,
+  keysExamined: 0,
+  docsExamined: 103060,
+  millis: 36
+}
+
+-- plan AFTER index { accountId: 1, createdAt: -1 }
+{
+  plan: 'LIMIT <- PROJECTION_DEFAULT <- FETCH <- IXSCAN(ix_account_recent)',
+  returned: 5,
+  keysExamined: 5,
+  docsExamined: 5,
+  millis: 1
+}
+
+documents examined: 103060 -> 5
+
+==================================================================
+ C. Querying inside embedded arrays
+==================================================================
+-- who owns account 3000001234? (multikey index on accounts.accountNumber)
+{
+  _id: 1234,
+  name: {
+    first: 'Chidi',
+    last: 'Ibekwe'
+  },
+  phone: '+2348000001234',
+  accounts: [
+    {
+      accountId: 1234,
+      accountNumber: '3000001234',
+      type: {
+        code: 'SAV',
+        name: 'Savings Account'
+      },
+      currency: 'NGN',
+      balance: Decimal128('4945430.44'),
+      status: 'ACTIVE',
+      openedAt: ISODate('2024-11-30T23:00:00.000Z')
+    }
+  ]
+}
+{
+  plan: 'EXPRESS_IXSCAN(accounts.accountNumber_1)',
+  returned: 1,
+  keysExamined: 1,
+  docsExamined: 1,
+  millis: 0
+}
+
+-- customers holding a Savings account with more than 5,100,000 in THAT account ($elemMatch)
+matching customers: 41
+{
+  _id: 25,
+  name: {
+    first: 'Ibrahim',
+    last: 'Suleiman'
+  },
+  accounts: [
+    {
+      accountId: 25,
+      accountNumber: '3000000025',
+      type: {
+        code: 'SAV',
+        name: 'Savings Account'
+      },
+      currency: 'NGN',
+      balance: Decimal128('5139020.93'),
+      status: 'ACTIVE',
+      openedAt: ISODate('2024-11-30T23:00:00.000Z')
+    }
+  ]
+}
+{
+  _id: 30,
+  name: {
+    first: 'Ibrahim',
+    last: 'Garba'
+  },
+  accounts: [
+    {
+      accountId: 30,
+      accountNumber: '3000000030',
+      type: {
+        code: 'SAV',
+        name: 'Savings Account'
+      },
+      currency: 'NGN',
+      balance: Decimal128('5109905.77'),
+      status: 'ACTIVE',
+      openedAt: ISODate('2024-11-30T23:00:00.000Z')
+    }
+  ]
+}
+
+==================================================================
+ D. Fields that only some documents have (polymorphic "meta")
+==================================================================
+-- which meta fields exist for each channel
+{
+  _id: 'ATM',
+  metaFields: [
+    'cardLast4',
+    'terminalId',
+    'location'
+  ]
+}
+{
+  _id: 'MOBILE_APP',
+  metaFields: [
+    'device'
+  ]
+}
+{
+  _id: 'POS',
+  metaFields: [
+    'merchantName',
+    'terminalId',
+    'merchantCategory'
+  ]
+}
+{
+  _id: 'USSD',
+  metaFields: [
+    'network',
+    'sessionId'
+  ]
+}
+{
+  _id: 'WEB',
+  metaFields: [
+    'browser'
+  ]
+}
+
+-- ATM withdrawals in Osogbo: meta.location exists only on ATM documents
+before index: {"plan":"COLLSCAN","returned":1790,"keysExamined":0,"docsExamined":103060,"millis":26}
+after index : {"plan":"FETCH <- IXSCAN(ix_atm_location)","returned":1790,"keysExamined":1790,"docsExamined":1790,"millis":2}
+{
+  reference: 'LGP-0000234551',
+  amount: Decimal128('789.18'),
+  meta: {
+    terminalId: 'ATM-0151',
+    location: 'Osogbo',
+    cardLast4: '9369'
+  },
+  createdAt: ISODate('2026-10-31T16:18:50.955Z')
+}
+{
+  reference: 'LGP-0000314935',
+  amount: Decimal128('25899.68'),
+  meta: {
+    terminalId: 'ATM-0135',
+    location: 'Osogbo',
+    cardLast4: '0265'
+  },
+  createdAt: ISODate('2026-10-29T11:27:26.752Z')
+}
+
+==================================================================
+ E. Updates on documents
+==================================================================
+-- before
+{
+  kyc: {
+    tier: 2,
+    documents: [
+      {
+        type: 'PHONE',
+        verified: true
+      },
+      {
+        type: 'NIN',
+        last4: '8500'
+      }
+    ]
+  },
+  accounts: [
+    {
+      accountNumber: '3000001500',
+      balance: Decimal128('4839677.90')
+    },
+    {
+      accountNumber: '3000027176',
+      balance: Decimal128('4916814.80')
+    }
+  ],
+  beneficiaries: [
+    {
+      bankCode: '057',
+      bankName: 'Zenith Bank',
+      accountNumber: '0000005967',
+      accountName: 'Beneficiary 5967'
+    }
+  ]
+}
+
+-- E1. atomic increment of one element of the accounts array ($inc with the positional operator)
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 1,
+  upsertedCount: 0
+}
+
+-- E2. add a beneficiary only if it is not already saved ($addToSet), run twice
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 1,
+  upsertedCount: 0
+}
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 0,
+  upsertedCount: 0
+}
+
+-- E3. schema evolution: upgrade KYC and add fields no other customer has yet. No ALTER TABLE.
+{
+  acknowledged: true,
+  insertedId: null,
+  matchedCount: 1,
+  modifiedCount: 1,
+  upsertedCount: 0
+}
+
+-- after
+{
+  kyc: {
+    tier: 3,
+    documents: [
+      {
+        type: 'PHONE',
+        verified: true
+      },
+      {
+        type: 'NIN',
+        last4: '8500'
+      },
+      {
+        type: 'SELFIE',
+        livenessScore: 0.97
+      }
+    ],
+    upgradedAt: ISODate('2026-11-15T13:11:56.536Z')
+  },
+  accounts: [
+    {
+      accountNumber: '3000001500',
+      balance: Decimal128('4842177.90')
+    },
+    {
+      accountNumber: '3000027176',
+      balance: Decimal128('4916814.80')
+    }
+  ],
+  beneficiaries: [
+    {
+      bankCode: '057',
+      bankName: 'Zenith Bank',
+      accountNumber: '0000005967',
+      accountName: 'Beneficiary 5967'
+    },
+    {
+      bankCode: '058',
+      bankName: 'Guaranty Trust Bank',
+      accountNumber: '0123456789',
+      accountName: 'Demo Payee'
+    }
+  ],
+  address: {
+    city: 'Lagos',
+    country: 'NG'
+  }
+}
+
+==================================================================
+ F. Integrity: what MongoDB refuses
+==================================================================
+F1 negative amount            : REJECTED - 121 - Document failed validation
+F2 unknown direction          : REJECTED - 121 - Document failed validation
+F3 missing required field     : REJECTED - 121 - Document failed validation
+F4 amount stored as a string  : REJECTED - 121 - Document failed validation
+F5 duplicate customer email   : REJECTED - 11000 - E11000 duplicate key error collection: lagoonpay.customers index: email_1 dup key: { email: "tunde.abubakar1@e
+F6 duplicate account number   : REJECTED - 11000 - E11000 duplicate key error collection: lagoonpay.customers index: accounts.accountNumber_1 dup key: { accounts
+F7 overdraft on embedded acct : REJECTED - 121 - Plan executor error during update :: caused by :: Document failed validation
+
+==================================================================
+ G. Key-value use: login sessions and one-time passwords that expire by themselves
+==================================================================
+-- lookup by key
+{
+  _id: 'session:9f2c41d7',
+  customerId: 1500,
+  device: 'Android',
+  expireAt: ISODate('2026-11-15T13:26:56.571Z')
+}
+{
+  plan: 'EXPRESS_IXSCAN(_id_)',
+  returned: 1,
+  keysExamined: 1,
+  docsExamined: 1,
+  millis: 0
+}
+-- atomic counter on a key
+{
+  _id: 'otp:+2348000001500',
+  codeHash: 'sha256:5e88...',
+  attempts: 1,
+  expireAt: ISODate('2026-11-15T13:16:56.571Z')
+}
+
+==================================================================
+ H. Indexes in place
+==================================================================
+customers:
+   _id_  {"_id":1}
+   email_1  {"email":1}  unique
+   phone_1  {"phone":1}  unique
+   accounts.accountNumber_1  {"accounts.accountNumber":1}  unique
+activity:
+   _id_  {"_id":1}
+   ix_account_recent  {"accountId":1,"createdAt":-1}
+   ix_atm_location  {"meta.location":1,"createdAt":-1}  partial {"channel":"ATM"}
+sessions:
+   _id_  {"_id":1}
+   expireAt_1  {"expireAt":1}  ttl

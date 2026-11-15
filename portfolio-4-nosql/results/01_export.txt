@@ -1,0 +1,4 @@
+Export finished: data/customers.json and data/activity.json
+    2000 data/customers.json
+  103060 data/activity.json
+  105060 total

@@ -1,0 +1,65 @@
+
+==================================================================
+ 1. Monthly volume and value by channel, third quarter of 2026 (same report as Portfolio 2, Q5)
+==================================================================
+{"entries":672,"totalValue":{"$numberDecimal":"8577728.09"},"month":"2026-07","channel":"ATM"}
+{"entries":1965,"totalValue":{"$numberDecimal":"24776104.73"},"month":"2026-07","channel":"MOBILE_APP"}
+{"entries":680,"totalValue":{"$numberDecimal":"8737123.56"},"month":"2026-07","channel":"POS"}
+{"entries":672,"totalValue":{"$numberDecimal":"8875083.08"},"month":"2026-07","channel":"USSD"}
+{"entries":677,"totalValue":{"$numberDecimal":"8109746.56"},"month":"2026-07","channel":"WEB"}
+{"entries":669,"totalValue":{"$numberDecimal":"8269211.35"},"month":"2026-08","channel":"ATM"}
+{"entries":2027,"totalValue":{"$numberDecimal":"26831325.26"},"month":"2026-08","channel":"MOBILE_APP"}
+{"entries":677,"totalValue":{"$numberDecimal":"8307420.70"},"month":"2026-08","channel":"POS"}
+{"entries":648,"totalValue":{"$numberDecimal":"8245827.37"},"month":"2026-08","channel":"USSD"}
+{"entries":633,"totalValue":{"$numberDecimal":"7445537.90"},"month":"2026-08","channel":"WEB"}
+{"entries":632,"totalValue":{"$numberDecimal":"7914984.18"},"month":"2026-09","channel":"ATM"}
+{"entries":1950,"totalValue":{"$numberDecimal":"24892881.81"},"month":"2026-09","channel":"MOBILE_APP"}
+{"entries":613,"totalValue":{"$numberDecimal":"7722411.11"},"month":"2026-09","channel":"POS"}
+{"entries":639,"totalValue":{"$numberDecimal":"8544609.34"},"month":"2026-09","channel":"USSD"}
+{"entries":628,"totalValue":{"$numberDecimal":"8036929.52"},"month":"2026-09","channel":"WEB"}
+
+==================================================================
+ 2. Money sent to other banks, by receiving bank (reads the embedded counterparty)
+==================================================================
+{"transfers":1565,"totalValue":{"$numberDecimal":"21011935.58"},"bank":"Zenith Bank","averageValue":{"$numberDecimal":"13426.16"}}
+{"transfers":1554,"totalValue":{"$numberDecimal":"20670084.86"},"bank":"Access Bank","averageValue":{"$numberDecimal":"13301.21"}}
+{"transfers":1484,"totalValue":{"$numberDecimal":"20275554.72"},"bank":"First Bank of Nigeria","averageValue":{"$numberDecimal":"13662.77"}}
+{"transfers":1451,"totalValue":{"$numberDecimal":"18454069.93"},"bank":"United Bank for Africa","averageValue":{"$numberDecimal":"12718.17"}}
+{"transfers":1483,"totalValue":{"$numberDecimal":"18419019.14"},"bank":"Guaranty Trust Bank","averageValue":{"$numberDecimal":"12420.11"}}
+
+==================================================================
+ 3. Top 5 customers by debits in September 2026, with names ($lookup = join to customers)
+==================================================================
+{"debits":5,"totalDebited":{"$numberDecimal":"150688.07"},"customerId":500,"name":"Chidi Nwachukwu","kycTier":1}
+{"debits":4,"totalDebited":{"$numberDecimal":"127367.63"},"customerId":1343,"name":"Kemi Balogun","kycTier":3}
+{"debits":3,"totalDebited":{"$numberDecimal":"114890.11"},"customerId":391,"name":"Musa Chukwu","kycTier":1}
+{"debits":5,"totalDebited":{"$numberDecimal":"104805.89"},"customerId":1226,"name":"Ibrahim Suleiman","kycTier":1}
+{"debits":3,"totalDebited":{"$numberDecimal":"104194.37"},"customerId":146,"name":"Amaka Yusuf","kycTier":1}
+
+==================================================================
+ 4. Distribution of transaction sizes ($bucket)
+==================================================================
+{"_id":{"$numberDecimal":"0"},"entries":20129,"totalValue":{"$numberDecimal":"12563803.97"}}
+{"_id":{"$numberDecimal":"1000"},"entries":21531,"totalValue":{"$numberDecimal":"54798239.27"}}
+{"_id":{"$numberDecimal":"5000"},"entries":11776,"totalValue":{"$numberDecimal":"86283798.93"}}
+{"_id":{"$numberDecimal":"10000"},"entries":19741,"totalValue":{"$numberDecimal":"330452768.18"}}
+{"_id":{"$numberDecimal":"25000"},"entries":19400,"totalValue":{"$numberDecimal":"706735830.52"}}
+{"_id":"over 50,000","entries":3,"totalValue":{"$numberDecimal":"9000000.00"}}
+
+==================================================================
+ 5. Deposits held, by account type (unwinds the embedded accounts array)
+==================================================================
+{"accounts":1482,"totalBalance":{"$numberDecimal":"7344178345.33"},"accountType":"Savings Account"}
+{"accounts":746,"totalBalance":{"$numberDecimal":"4350680868.54"},"accountType":"Current Account"}
+{"accounts":779,"totalBalance":{"$numberDecimal":"3859963690.48"},"accountType":"Wallet (Tier 1)"}
+
+==================================================================
+ 6. Computed pattern: pre-aggregate daily totals per account into their own collection ($merge)
+==================================================================
+daily_account_summary documents: 64691
+-- busiest five days of merchant account 7, read from the summary instead of scanning its activity
+{"_id":{"accountId":7,"day":"2026-10-19"},"entries":12,"credits":{"$numberDecimal":"141054.39"},"debits":{"$numberDecimal":"0"}}
+{"_id":{"accountId":7,"day":"2025-06-23"},"entries":10,"credits":{"$numberDecimal":"81107.30"},"debits":{"$numberDecimal":"0"}}
+{"_id":{"accountId":7,"day":"2026-03-30"},"entries":10,"credits":{"$numberDecimal":"138956.01"},"debits":{"$numberDecimal":"0"}}
+{"_id":{"accountId":7,"day":"2026-06-28"},"entries":10,"credits":{"$numberDecimal":"136731.01"},"debits":{"$numberDecimal":"0"}}
+{"_id":{"accountId":7,"day":"2026-07-16"},"entries":9,"credits":{"$numberDecimal":"149255.19"},"debits":{"$numberDecimal":"0"}}
