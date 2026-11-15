@@ -1,0 +1,83 @@
+erDiagram
+    CUSTOMERS ||--o{ ACCOUNTS : owns
+    CUSTOMERS ||--o{ BENEFICIARIES : saves
+    ACCOUNT_TYPES ||--o{ ACCOUNTS : classifies
+    BANKS ||--o{ BENEFICIARIES : holds
+    BENEFICIARIES |o--o{ TRANSACTIONS : receives
+    TRANSACTIONS |o--o| TRANSACTIONS : reverses
+    TRANSACTIONS ||--o{ LEDGER_ENTRIES : "posts as"
+    ACCOUNTS ||--o{ LEDGER_ENTRIES : "is moved by"
+    ACCOUNTS ||--o{ AUDIT_LOG : "is tracked in"
+
+    CUSTOMERS {
+        bigint customer_id PK
+        varchar first_name
+        varchar last_name
+        varchar email UK
+        varchar phone UK
+        date date_of_birth
+        smallint kyc_tier
+        timestamptz created_at
+    }
+    ACCOUNT_TYPES {
+        char account_type_code PK
+        varchar type_name UK
+        numeric min_balance
+        numeric daily_transfer_limit
+        numeric annual_interest_rate
+    }
+    ACCOUNTS {
+        bigint account_id PK
+        char account_number UK
+        bigint customer_id FK
+        char account_type_code FK
+        char currency
+        numeric balance
+        varchar status
+        timestamptz opened_at
+    }
+    BANKS {
+        char bank_code PK
+        varchar bank_name UK
+    }
+    BENEFICIARIES {
+        bigint beneficiary_id PK
+        bigint customer_id FK
+        char bank_code FK
+        char account_number
+        varchar account_name
+        varchar nickname
+        timestamptz added_at
+    }
+    TRANSACTIONS {
+        bigint transaction_id PK
+        varchar reference UK
+        varchar txn_type
+        numeric amount
+        varchar status
+        varchar channel
+        bigint beneficiary_id FK
+        bigint reverses_transaction_id FK
+        varchar narration
+        timestamptz initiated_at
+        timestamptz completed_at
+    }
+    LEDGER_ENTRIES {
+        bigint entry_id PK
+        bigint transaction_id FK
+        bigint account_id FK
+        varchar direction
+        numeric amount
+        numeric balance_after
+        timestamptz created_at
+    }
+    AUDIT_LOG {
+        bigint audit_id PK
+        bigint account_id FK
+        numeric old_balance
+        numeric new_balance
+        varchar old_status
+        varchar new_status
+        text changed_by
+        timestamptz changed_at
+    }
