@@ -13,17 +13,27 @@ LagoonPay is a simulated Nigerian digital bank. Customers hold savings, current 
 | Folder | Activity | Status |
 |---|---|---|
 | [portfolio-1-database-design](portfolio-1-database-design/) | ER diagram, relational schema, keys, constraints, normalisation | Done |
-| portfolio-2-query-optimisation | SQL queries, execution plans, indexing | To do |
-| portfolio-3-transactions-concurrency | Commit, rollback, isolation levels, locking | To do |
-| portfolio-4-nosql | MongoDB model of the same case study | To do |
-| portfolio-5-distributed-cloud | Replication, sharding, availability and consistency | To do |
+| [portfolio-2-query-optimisation](portfolio-2-query-optimisation/) | SQL queries, execution plans, indexing | Done |
+| [portfolio-3-transactions-concurrency](portfolio-3-transactions-concurrency/) | Commit, rollback, isolation levels, locking | Done |
+| [portfolio-4-nosql](portfolio-4-nosql/) | MongoDB document model of the same case study | Done |
+| [portfolio-5-distributed-cloud](portfolio-5-distributed-cloud/) | Replication, failover, sharding, consistency, cloud design | Done |
 
 ## Tools
 
-PostgreSQL 16, psql, MongoDB (from Portfolio 4), Mermaid for diagrams.
+PostgreSQL 18 (with `dblink`), `psql`, MongoDB Community 9.0.8 (`mongod`, `mongos`, `mongosh`), Mermaid for diagrams, Git and GitHub.
+
+## How to run
+
+Each folder has its own README with exact commands. In order:
+
+1. `portfolio-1-database-design`: run the four SQL files with `psql -d lagoonpay_db -f <file>`.
+2. `portfolio-2-query-optimisation`: `psql -d lagoonpay_db -f run_all.sql` (rebuilds the schema and loads the large dataset).
+3. `portfolio-3-transactions-concurrency`: `sh run_all.sh`.
+4. `portfolio-4-nosql`: `sh run_all.sh` (needs MongoDB running).
+5. `portfolio-5-distributed-cloud`: `sh run_all.sh` (needs Portfolio 4 to have been run).
+
+Every folder contains `results/` (text output of each step, including execution plans) and `evidence/` (screenshots from my machine).
 
 ## AI use declaration
 
-- **Tool used:** Claude (Anthropic).
-- **Used for:** drafting the SQL scripts, the ER diagram source and the README text for Portfolio 1.
-- **How I reviewed and verified the output:** _to be completed by me after running and checking the scripts._
+I selected the case study and technology stack, ran every script on my own MacBook (PostgreSQL 18, MongoDB 9.0.8), and produced all outputs and screenshots myself; the results tables report figures from my own runs. I used Claude (Anthropic) to draft the scripts and documentation and to troubleshoot errors. I verified the output by executing and re-running it, reporting failures on my versions until they were corrected, and reviewing the documentation so that I can explain the design and results.
