@@ -1,0 +1,122 @@
+SET
+Pager usage is off.
+Session B connected (second database connection opened with dblink).
+
+==================================================================
+ 4A. REPEATABLE READ allows write skew
+==================================================================
+ account_id |  balance   | combined_balance | required_minimum 
+------------+------------+------------------+------------------
+       1001 | 5000406.49 |       9963433.51 |          6000000
+      27996 | 4963027.02 |       9963433.51 |          6000000
+(2 rows)
+
+BEGIN
+       step        |  combined  | withdrawal_allowed 
+-------------------+------------+--------------------
+ A checks the rule | 9963433.51 | t
+(1 row)
+
+   b   
+-------
+ BEGIN
+(1 row)
+
+       step        |  combined  | withdrawal_allowed 
+-------------------+------------+--------------------
+ B checks the rule | 9963433.51 | t
+(1 row)
+
+                  step                   |  balance   
+-----------------------------------------+------------
+ A withdraws 3,000,000 from account 1001 | 2000406.49
+(1 row)
+
+                   step                   |  balance   
+------------------------------------------+------------
+ B withdraws 3,000,000 from account 27996 | 1963027.02
+(1 row)
+
+COMMIT
+ b_commit 
+----------
+ COMMIT
+(1 row)
+
+      step      | combined_balance | required_minimum | rule_still_holds 
+----------------+------------------+------------------+------------------
+ both committed |       3963433.51 |          6000000 | f
+(1 row)
+
+-- the rule is broken although each transaction checked it
+-- put the money back before the next run
+ acc1_balance | acc2_balance 
+--------------+--------------
+   5000406.49 |   4963027.02
+(1 row)
+
+
+==================================================================
+ 4B. SERIALIZABLE detects it: the second transaction is aborted
+==================================================================
+BEGIN
+       step        |  combined  | withdrawal_allowed 
+-------------------+------------+--------------------
+ A checks the rule | 9963433.51 | t
+(1 row)
+
+   b   
+-------
+ BEGIN
+(1 row)
+
+       step        |  combined  | withdrawal_allowed 
+-------------------+------------+--------------------
+ B checks the rule | 9963433.51 | t
+(1 row)
+
+                  step                   |  balance   
+-----------------------------------------+------------
+ A withdraws 3,000,000 from account 1001 | 2000406.49
+(1 row)
+
+   step    
+-----------
+ A commits
+(1 row)
+
+COMMIT
+-- B now tries the same thing; PostgreSQL is expected to refuse (SQLSTATE 40001)
+psql:04_serializable_write_skew.sql:67: NOTICE:  could not serialize access due to read/write dependencies among transactions
+DETAIL:  Reason code: Canceled on identification as a pivot, during write.
+HINT:  The transaction might succeed if retried.
+                   step                   | b_withdraw_result 
+------------------------------------------+-------------------
+ B withdraws 3,000,000 from account 27996 | ERROR
+(1 row)
+
+   step    | b_commit_result_rollback_means_aborted 
+-----------+----------------------------------------
+ B commits | ROLLBACK
+(1 row)
+
+ step  | combined_balance | required_minimum | rule_still_holds 
+-------+------------------+------------------+------------------
+ final |       6963433.51 |          6000000 | t
+(1 row)
+
+-- only A's withdrawal went through. B would retry, see the new total and be declined.
+-- put the money back
+ acc1_balance 
+--------------
+   5000406.49
+(1 row)
+
+
+-- consistency check: difference must be 0.00
+ account_id | account_number | stored_balance | ledger_balance | difference 
+------------+----------------+----------------+----------------+------------
+       1001 | 3000001001     |     5000406.49 |     5000406.49 |       0.00
+      27996 | 3000027996     |     4963027.02 |     4963027.02 |       0.00
+(2 rows)
+

@@ -1,0 +1,168 @@
+SET
+Pager usage is off.
+Session B connected (second database connection opened with dblink).
+
+==================================================================
+ 3A. The problem: read, calculate in the application, write back
+==================================================================
+ starting_balance | correct_final_balance 
+------------------+-----------------------
+       4961604.24 |            4911604.24
+(1 row)
+
+BEGIN
+  step   |  balance   
+---------+------------
+ A reads | 4961604.24
+(1 row)
+
+   b   
+-------
+ BEGIN
+(1 row)
+
+  step   |  balance   
+---------+------------
+ B reads | 4961604.24
+(1 row)
+
+UPDATE 1
+COMMIT
+              step               |  balance   
+---------------------------------+------------
+ A writes its result and commits | 4931604.24
+(1 row)
+
+    b     
+----------
+ UPDATE 1
+(1 row)
+
+   b    
+--------
+ COMMIT
+(1 row)
+
+              step               |  balance   
+---------------------------------+------------
+ B writes its result and commits | 4941604.24
+(1 row)
+
+ final_balance | correct_balance | money_created_by_the_bug 
+---------------+-----------------+--------------------------
+    4941604.24 |      4911604.24 |                 30000.00
+(1 row)
+
+-- A's withdrawal of 30,000 has been overwritten: 50,000 left the ATM, only 20,000 left the account
+
+==================================================================
+ 3B. Fix 1, pessimistic locking: SELECT ... FOR UPDATE
+     A locks the row when it reads. B has to wait for A to finish,
+     and then reads the balance A left behind.
+==================================================================
+BEGIN
+                  step                  |  balance   
+----------------------------------------+------------
+ A reads FOR UPDATE (row is now locked) | 4961604.24
+(1 row)
+
+   b   
+-------
+ BEGIN
+(1 row)
+
+ b_query_sent 
+--------------
+            1
+(1 row)
+
+-- B is blocked: PostgreSQL shows it waiting on a lock held by A
+ blocked_pid | wait_event_type |  wait_event   | state  | blocked_by | session_a_pid |                         waiting_query                          
+-------------+-----------------+---------------+--------+------------+---------------+----------------------------------------------------------------
+       14411 | Lock            | transactionid | active | {14409}    |         14409 | SELECT balance FROM accounts WHERE account_id = 301 FOR UPDATE
+(1 row)
+
+UPDATE 1
+COMMIT
+                 step                 |  balance   
+--------------------------------------+------------
+ A writes and commits (lock released) | 4931604.24
+(1 row)
+
+                  step                   |  balance   
+-----------------------------------------+------------
+ B is released and reads the NEW balance | 4931604.24
+(1 row)
+
+    b     
+----------
+ UPDATE 1
+(1 row)
+
+   b    
+--------
+ COMMIT
+(1 row)
+
+ final_balance | correct_balance | difference 
+---------------+-----------------+------------
+    4911604.24 |      4911604.24 |       0.00
+(1 row)
+
+
+==================================================================
+ 3C. Fix 2, optimistic check: only write if nobody changed the row
+     No lock is held while the user thinks. B's update carries the
+     balance it read; it matches 0 rows, so B knows it must retry.
+==================================================================
+UPDATE 1
+              step              |  balance   
+--------------------------------+------------
+ A writes first (1 row updated) | 4931604.24
+(1 row)
+
+              step               | b_result_update_0_means_conflict_detected 
+---------------------------------+-------------------------------------------
+ B writes with its stale balance | UPDATE 0
+(1 row)
+
+-- B retries: reads again, then writes
+  step   | b_result 
+---------+----------
+ B retry | UPDATE 1
+(1 row)
+
+ final_balance | correct_balance | difference 
+---------------+-----------------+------------
+    4911604.24 |      4911604.24 |       0.00
+(1 row)
+
+
+==================================================================
+ 3D. Fix 3, let the database do the arithmetic (what LagoonPay uses)
+     withdraw() runs UPDATE ... SET balance = balance - amount under
+     a row lock, so there is no stale value to write back. Both
+     withdrawals also get proper transaction and ledger rows.
+==================================================================
+        step        |  balance   
+--------------------+------------
+ A withdraws 30,000 | 4931604.24
+(1 row)
+
+        step        |  balance   
+--------------------+------------
+ B withdraws 20,000 | 4911604.24
+(1 row)
+
+ final_balance | correct_balance | difference 
+---------------+-----------------+------------
+    4911604.24 |      4911604.24 |       0.00
+(1 row)
+
+
+-- consistency check: difference must be 0.00
+ account_id | account_number | stored_balance | ledger_balance | difference 
+------------+----------------+----------------+----------------+------------
+        301 | 3000000301     |     4911604.24 |     4911604.24 |       0.00
+(1 row)
+

@@ -1,0 +1,124 @@
+SET
+Pager usage is off.
+Session B connected (second database connection opened with dblink).
+ deadlock_timeout 
+------------------
+ 1s
+(1 row)
+
+
+==================================================================
+ 5A. Deadlock: two transfers in opposite directions lock the
+     accounts in opposite order
+       A: locks 401, then wants 402
+       B: locks 402, then wants 401
+==================================================================
+BEGIN
+    step     | account_id 
+-------------+------------
+ A locks 401 |        401
+(1 row)
+
+   b   
+-------
+ BEGIN
+(1 row)
+
+    step     | account_id 
+-------------+------------
+ B locks 402 |        402
+(1 row)
+
+                 step                 | sent 
+--------------------------------------+------
+ B asks for 401 and has to wait for A |    1
+(1 row)
+
+-- A now asks for 402, which B holds. Each waits for the other: a cycle.
+-- After deadlock_timeout PostgreSQL finds the cycle and aborts one transaction.
+      step      | account_id 
+----------------+------------
+ A asks for 402 |        402
+(1 row)
+
+-- what happened to B (an error message here means B was chosen as the victim)
+psql:05_deadlock.sql:33: NOTICE:  deadlock detected
+DETAIL:  Process 14421 waits for ShareLock on transaction 1002; blocked by process 14419.
+Process 14419 waits for ShareLock on transaction 1003; blocked by process 14421.
+HINT:  See server log for query details.
+ account_id 
+------------
+(0 rows)
+
+                                      session_b_error                                      
+-------------------------------------------------------------------------------------------
+ ERROR:  deadlock detected                                                                +
+ DETAIL:  Process 14421 waits for ShareLock on transaction 1002; blocked by process 14419.+
+ Process 14419 waits for ShareLock on transaction 1003; blocked by process 14421.         +
+ HINT:  See server log for query details.                                                 +
+ CONTEXT:  while locking tuple (345,41) in relation "accounts"
+(1 row)
+
+ account_id 
+------------
+(0 rows)
+
+ROLLBACK
+    b     
+----------
+ ROLLBACK
+(1 row)
+
+-- If the ERROR appeared on "A asks for 402" instead, A was the victim. Either way
+-- exactly one transaction is aborted and the other one is able to continue.
+
+==================================================================
+ 5B. Prevention: always lock accounts in the same order
+     transfer_funds() locks the lower account_id first, whatever
+     the direction of the transfer. The same two opposite transfers
+     now queue up instead of deadlocking.
+==================================================================
+ account_id |  balance   
+------------+------------
+        401 | 4845648.96
+        402 | 4944116.98
+(2 rows)
+
+BEGIN
+                        step                         |         result         
+-----------------------------------------------------+------------------------
+ A: transfer 401 -> 402 of 1,000 (not yet committed) | LGP-0000430028 SUCCESS
+(1 row)
+
+                  step                   | sent 
+-----------------------------------------+------
+ B: transfer 402 -> 401 of 2,000 is sent |    1
+(1 row)
+
+-- B is waiting for A, but holds nothing A needs, so there is no cycle
+ blocked_pid | wait_event_type |  wait_event   | blocked_by 
+-------------+-----------------+---------------+------------
+       14421 | Lock            | transactionid | {14419}
+(1 row)
+
+COMMIT
+                  step                  |         result         
+----------------------------------------+------------------------
+ A commits; B is released and completes | LGP-0000430029 SUCCESS
+(1 row)
+
+-- net effect: 401 is up 1,000 and 402 is down 1,000
+ account_id |  balance   
+------------+------------
+        401 | 4846648.96
+        402 | 4943116.98
+(2 rows)
+
+
+-- consistency check: difference must be 0.00
+ account_id | account_number | stored_balance | ledger_balance | difference 
+------------+----------------+----------------+----------------+------------
+        401 | 3000000401     |     4846648.96 |     4846648.96 |       0.00
+        402 | 3000000402     |     4943116.98 |     4943116.98 |       0.00
+(2 rows)
+

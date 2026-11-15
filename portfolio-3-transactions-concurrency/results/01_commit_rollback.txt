@@ -1,0 +1,218 @@
+SET
+Pager usage is off.
+
+==================================================================
+ 1A. COMMIT: a transfer is one atomic unit of three statements
+==================================================================
+-- balances before
+ account_id | account_number |  balance   
+------------+----------------+------------
+        101 | 3000000101     | 4955160.31
+        102 | 3000000102     | 4907844.69
+(2 rows)
+
+BEGIN
+INSERT 0 1
+ sender_balance 
+----------------
+     4930160.31
+(1 row)
+
+ receiver_balance 
+------------------
+       4932844.69
+(1 row)
+
+COMMIT
+-- balances after COMMIT: 25,000 has moved from 101 to 102
+ account_id | account_number |  balance   
+------------+----------------+------------
+        101 | 3000000101     | 4930160.31
+        102 | 3000000102     | 4932844.69
+(2 rows)
+
+-- the two ledger lines written by the transaction
+ entry_id | transaction_id | account_id | direction |  amount  | balance_after 
+----------+----------------+------------+-----------+----------+---------------
+   577997 |         430001 |        101 | DEBIT     | 25000.00 |    4930160.31
+   577998 |         430001 |        102 | CREDIT    | 25000.00 |    4932844.69
+(2 rows)
+
+
+==================================================================
+ 1B. Explicit ROLLBACK: the user cancels before confirming
+==================================================================
+BEGIN
+INSERT 0 1
+ sender_balance 
+----------------
+     4890160.31
+(1 row)
+
+ receiver_balance 
+------------------
+       4972844.69
+(1 row)
+
+-- inside the transaction the new balances are visible to this session
+ account_id |  balance   
+------------+------------
+        101 | 4890160.31
+        102 | 4972844.69
+(2 rows)
+
+ROLLBACK
+-- after ROLLBACK: balances are back to the 1A values and no row was kept
+ account_id |  balance   
+------------+------------
+        101 | 4930160.31
+        102 | 4932844.69
+(2 rows)
+
+ rows_kept_from_1b 
+-------------------
+                 0
+(1 row)
+
+
+==================================================================
+ 1C. Automatic rollback: an error in the middle undoes everything
+     The receiver is credited first, then the debit breaks the
+     no-overdraft rule. The credit must not survive.
+==================================================================
+BEGIN
+INSERT 0 1
+ receiver_balance_inside_txn 
+-----------------------------
+                904932844.69
+(1 row)
+
+-- the next statement is expected to fail with a CHECK violation
+psql:01_commit_rollback.sql:60: ERROR:  new row for relation "accounts" violates check constraint "accounts_balance_check"
+DETAIL:  Failing row contains (101, 3000000101, 101, SAV, NGN, -895069839.69, ACTIVE, 2024-12-01 00:00:00+01).
+CONTEXT:  SQL statement "UPDATE accounts
+    SET balance = balance + CASE p_direction WHEN 'CREDIT' THEN p_amount ELSE -p_amount END
+    WHERE account_id = p_account_id
+    RETURNING balance"
+PL/pgSQL function post_ledger_entry(bigint,bigint,character varying,numeric) line 16 at SQL statement
+-- the transaction is now aborted; PostgreSQL refuses further work in it
+psql:01_commit_rollback.sql:62: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+-- COMMIT on an aborted transaction is turned into ROLLBACK
+ROLLBACK
+-- balances unchanged: the 900,000,000 credit was undone
+ account_id |  balance   
+------------+------------
+        101 | 4930160.31
+        102 | 4932844.69
+(2 rows)
+
+
+==================================================================
+ 1D. SAVEPOINT: partial rollback inside a batch
+     Three payouts from 101. The second goes to a frozen account.
+     Only that one is undone; the other two are committed.
+==================================================================
+UPDATE 1
+ account_id |  balance   | status 
+------------+------------+--------
+        101 | 4930160.31 | ACTIVE
+        103 | 4974743.13 | ACTIVE
+        104 | 4970517.46 | FROZEN
+        105 | 4941643.58 | ACTIVE
+(4 rows)
+
+BEGIN
+ sender_balance 
+----------------
+     4920160.31
+(1 row)
+
+ receiver_103 
+--------------
+   4984743.13
+(1 row)
+
+SAVEPOINT
+ sender_balance 
+----------------
+     4910160.31
+(1 row)
+
+-- the next statement is expected to fail: account 104 is frozen
+psql:01_commit_rollback.sql:85: ERROR:  account 104 is FROZEN, posting refused
+CONTEXT:  PL/pgSQL function post_ledger_entry(bigint,bigint,character varying,numeric) line 13 at RAISE
+PL/pgSQL function deposit(bigint,numeric,character varying) line 8 at RETURN
+ROLLBACK
+ sender_balance 
+----------------
+     4910160.31
+(1 row)
+
+ receiver_105 
+--------------
+   4951643.58
+(1 row)
+
+COMMIT
+-- 101 is down 20,000 (not 30,000); 103 and 105 are up 10,000; 104 is untouched
+ account_id |  balance   | status 
+------------+------------+--------
+        101 | 4910160.31 | ACTIVE
+        103 | 4984743.13 | ACTIVE
+        104 | 4970517.46 | FROZEN
+        105 | 4951643.58 | ACTIVE
+(4 rows)
+
+UPDATE 1
+
+==================================================================
+ 1E. transfer_funds(): the same logic packaged as one function
+==================================================================
+-- a normal transfer
+         result         
+------------------------
+ LGP-0000430010 SUCCESS
+(1 row)
+
+-- a transfer that is too large: money does not move, a FAILED row is recorded
+                                                  result                                                   
+-----------------------------------------------------------------------------------------------------------
+ LGP-0000430011 FAILED: new row for relation "accounts" violates check constraint "accounts_balance_check"
+(1 row)
+
+ transaction_id |   reference    |    amount    | status  |                                     narration                                      
+----------------+----------------+--------------+---------+------------------------------------------------------------------------------------
+         430011 | LGP-0000430011 | 900000000.00 | FAILED  | new row for relation "accounts" violates check constraint "accounts_balance_check"
+         430010 | LGP-0000430010 |      5000.00 | SUCCESS | Demo 1E good transfer
+(2 rows)
+
+
+==================================================================
+ 1F. Durability: a commit is written to the write-ahead log (WAL)
+==================================================================
+ synchronous_commit 
+--------------------
+ on
+(1 row)
+
+         result         
+------------------------
+ LGP-0000430012 SUCCESS
+(1 row)
+
+ wal_position_before | wal_position_after | wal_bytes_written 
+---------------------+--------------------+-------------------
+ 0/1E6C8368          | 0/1E6C8BB8         |              2128
+(1 row)
+
+
+-- consistency check for the accounts used: difference must be 0.00
+ account_id | account_number | stored_balance | ledger_balance | difference 
+------------+----------------+----------------+----------------+------------
+        101 | 3000000101     |     4904160.31 |     4904160.31 |       0.00
+        102 | 3000000102     |     4938844.69 |     4938844.69 |       0.00
+        103 | 3000000103     |     4984743.13 |     4984743.13 |       0.00
+        104 | 3000000104     |     4970517.46 |     4970517.46 |       0.00
+        105 | 3000000105     |     4951643.58 |     4951643.58 |       0.00
+(5 rows)
+

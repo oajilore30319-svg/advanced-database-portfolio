@@ -1,0 +1,13 @@
+SET
+CREATE EXTENSION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+--- Setup complete. Dataset check (should be 30000 accounts) ---
+ accounts 
+----------
+    30000
+(1 row)
+
